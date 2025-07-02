@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pkl
+*.sav
+*.log
+*.csv
+data/
+models/
+wandb/
+notebooks/
+venv/
+.git/
+fraud-detection-sagemaker/
+.ipynb_checkpoints/

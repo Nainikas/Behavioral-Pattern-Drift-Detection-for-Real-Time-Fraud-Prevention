@@ -37,3 +37,7 @@ Thumbs.db
 
 # Environment files
 .env
+.aws
+
+fraud-detection-sagemaker/
+behavioral-pattern-drift-detection-for-real-time-fraud-prevention/

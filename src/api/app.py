@@ -49,9 +49,8 @@ def predict(data: TransactionInput):
         prob = model.predict_proba(df)[0][1]
         pred = int(prob > 0.3)
 
-        #  Apply real-time risk rule
+        # Apply real-time risk rule
         is_risky = compute_risk_flags(complete_features)
-
         if prob < 0.3 and is_risky:
             pred = 1
 
@@ -59,15 +58,54 @@ def predict(data: TransactionInput):
             k: complete_features.get(k, 0.0) for k in MONITORED_FEATURES
         })
 
-        return {
+        response = {
             "fraud_probability": float(round(prob, 4)),
             "prediction": int(pred),
             "is_risky_override": bool(is_risky and prob < 0.3),
             "drift_flags": {k: bool(v) for k, v in drift_flags.items()}
         }
 
+        # Log to database
+        log_prediction_to_db({
+            "features": complete_features,
+            **response
+        })
+
+        return response
+
     except Exception as e:
         return {"error": str(e)}
+
+
+from src.db.database import get_db_connection
+
+def log_prediction_to_db(data: dict):
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        INSERT INTO prediction_logs (
+            customer_age, zip_count_4w, income, prediction, fraud_probability,
+            is_risky_override, drift_customer_age, drift_zip_count_4w, drift_income
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """,
+        (
+            data["features"]["customer_age"],
+            data["features"]["zip_count_4w"],
+            data["features"]["income"],
+            data["prediction"],
+            data["fraud_probability"],
+            data["is_risky_override"],
+            data["drift_flags"]["customer_age"],
+            data["drift_flags"]["zip_count_4w"],
+            data["drift_flags"]["income"]
+        )
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
+
 
 @app.get("/")
 def root():

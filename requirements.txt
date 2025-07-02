@@ -22,3 +22,5 @@ gradio
 
 # Experiment Tracking
 wandb
+
+psycopg2-binary

@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres:15
+    container_name: fraud_pg
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: frauddb
+      POSTGRES_USER: frauduser
+      POSTGRES_PASSWORD: fraudpass
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  app:
+    build: .
+    container_name: fraud_api
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      DB_HOST: db
+      DB_NAME: frauddb
+      DB_USER: frauduser
+      DB_PASSWORD: fraudpass
+    command: uvicorn src.api.app:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+  pgdata:
