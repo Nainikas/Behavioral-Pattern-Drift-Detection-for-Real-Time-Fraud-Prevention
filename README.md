@@ -68,6 +68,9 @@ This project builds a robust, real-time fraud detection pipeline designed for hi
 
 ## W&B dashboard
 > https://wandb.ai/nainikas-california-state-university-northridge/fraud-detection?nw=nwusernainikas
+
+## Huggingface Demo
+> https://huggingface.co/spaces/Nainikas/Fraud-Prevention
 ---
 
 ## ✅ Key Features
