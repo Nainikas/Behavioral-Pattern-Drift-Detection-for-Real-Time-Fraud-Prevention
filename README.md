@@ -8,6 +8,7 @@ A production-grade fraud detection system combining:
 * SHAP explainability
 * Variant generalization testing
 * Docker + Hugging Face deployment
+* POSTgreSQL
 
 ---
 
@@ -65,6 +66,8 @@ This project builds a robust, real-time fraud detection pipeline designed for hi
 * Contains protected attributes
 * Designed to test fairness + robustness
 
+## W&B dashboard
+> https://wandb.ai/nainikas-california-state-university-northridge/fraud-detection?nw=nwusernainikas
 ---
 
 ## ✅ Key Features
@@ -94,7 +97,8 @@ This project builds a robust, real-time fraud detection pipeline designed for hi
 * Metrics logged to W\&B
 * SHAP summary plots generated per variant
 
-![SHAP Summary](./screenshots/shap_variant_iv.png)
+SHAP summary plot for Variant V
+![image](https://github.com/user-attachments/assets/b2f455dd-d434-482c-9ed9-a99beb7493a9)
 
 ---
 
@@ -128,7 +132,8 @@ uvicorn src.api.app:app --reload
 
 ### ✅ 5. Test prediction
 
-![Swagger UI](./screenshots/swagger_predict.png)
+![Screenshot 2025-07-01 165811](https://github.com/user-attachments/assets/67145f34-daf0-4fd1-8360-e4ddded5e82b)
+
 
 ```json
 {
