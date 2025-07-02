@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.ipynb_checkpoints
+.venv/
+venv/
+env/
+
+# Ignore large raw CSVs (>100MB)
+*data/
+*backup_csvs/
+
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Models & outputs
+models/*.png
+models/*.log
+models/*.json
+wandb/
+variant_reports/
+*.sav
+*.pkl
+
+# OS
+.DS_Store
+Thumbs.db
+
+# VSCode
+.vscode/
+
+# Logs
+*.log
+
+# Environment files
+.env

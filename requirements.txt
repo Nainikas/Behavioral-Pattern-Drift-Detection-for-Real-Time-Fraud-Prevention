@@ -1,0 +1,24 @@
+# Core Python Libraries
+pandas
+numpy
+scikit-learn
+matplotlib
+seaborn
+
+# Modeling
+xgboost
+lightgbm
+
+# Drift Detection
+river
+
+# Backend API
+fastapi
+uvicorn
+python-multipart
+
+# Frontend / Demo
+gradio
+
+# Experiment Tracking
+wandb
