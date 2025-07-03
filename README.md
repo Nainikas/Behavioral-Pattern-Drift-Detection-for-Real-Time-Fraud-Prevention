@@ -35,6 +35,7 @@ This project builds a robust, real-time fraud detection pipeline designed for hi
 * **Docker** (deployment)
 * **Weights & Biases** (tracking)
 * **Gradio** (UI for Hugging Face demo)
+* **POSTgreSQL** (backend)
 
 ---
 
