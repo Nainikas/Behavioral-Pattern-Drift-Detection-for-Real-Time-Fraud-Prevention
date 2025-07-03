@@ -69,6 +69,22 @@ This project builds a robust, real-time fraud detection pipeline designed for hi
 
 ## W&B dashboard
 > https://wandb.ai/nainikas-california-state-university-northridge/fraud-detection?nw=nwusernainikas
+scale_pos_weight = 89.67
+
+Classification Report:
+               precision    recall  f1-score   support
+
+           0       1.00      0.76      0.86    197794
+           1       0.04      0.86      0.07      2206
+
+    accuracy                           0.76    200000
+   macro avg       0.52      0.81      0.47    200000
+weighted avg       0.99      0.76      0.85    200000
+
+Confusion Matrix:
+ [[150186  47608]
+ [   301   1905]]
+ROC AUC Score: 0.8937
 
 ## Huggingface Demo
 > https://huggingface.co/spaces/Nainikas/Fraud-Prevention
