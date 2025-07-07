@@ -1,78 +1,140 @@
 # 🛡️ Behavioral Pattern Drift Detection for Real-Time Fraud Prevention
 
-A production-grade fraud detection system combining:
+🔗 **[Live Demo on Hugging Face](https://huggingface.co/spaces/Nainikas/Fraud-Prevention)**  
+📊 **[W&B Dashboard](https://wandb.ai/nainikas-california-state-university-northridge/fraud-detection?nw=nwusernainikas)**
 
-* Supervised ML (XGBoost)
-* Rule-based overrides
-* Concept drift monitoring
-* SHAP explainability
-* Variant generalization testing
-* Docker + Hugging Face deployment
-* POSTgreSQL
+## 🚀 Business Impact Summary
+
+- Detects and prevents fraud in real-time using ML + rule-based logic  
+- Adapts to evolving attacker behavior through feature-wise **concept drift detection**  
+- Maintains regulatory compliance with **explainable AI (SHAP)** and full **audit logs (PostgreSQL)**  
 
 ---
 
-## 🚀 Project Overview
+## 📌 Project Overview
 
-This project builds a robust, real-time fraud detection pipeline designed for high-risk use cases such as loan applications or credit card signups. It was built to demonstrate:
+This project builds a robust, real-time fraud detection pipeline designed for high-risk use cases such as loan applications or credit card signups. It demonstrates:
 
-* ML modeling + feature engineering for fraud
-* Practical deployment using FastAPI + Docker
-* Generalization testing on the BAF NeurIPS 2022 dataset suite
-* Explainability using SHAP
-* Real-time drift monitoring with River
-* Visual + override-based decisioning logic
+- ML modeling + feature engineering for fraud
+- Real-time scoring with **FastAPI + Docker**
+- Generalization testing using the **BAF NeurIPS 2022 dataset**
+- Model interpretability with **SHAP**
+- **Concept drift monitoring** with `river.ADWIN`
+- Risk rule override logic
+- Public demo on Hugging Face Spaces
 
 ---
 
 ## 📦 Tech Stack
 
-* **Python 3.10**
-* **FastAPI** (serving)
-* **XGBoost** (modeling)
-* **River** (drift detection)
-* **SHAP** (explainability)
-* **Docker** (deployment)
-* **Weights & Biases** (tracking)
-* **Gradio** (UI for Hugging Face demo)
-* **POSTgreSQL** (backend)
+- **Python 3.10**
+- **FastAPI** (serving)
+- **XGBoost** (modeling)
+- **River** (drift detection)
+- **SHAP** (explainability)
+- **Docker** (deployment)
+- **Gradio** (Hugging Face UI)
+- **PostgreSQL** (backend logging)
+- **Weights & Biases** (tracking)
 
 ---
 
-## 📂 Folder Structure
+## 🧠 Feature Engineering
 
-```bash
-.
-├── app.py / src/api/app.py         # FastAPI app
-├── src/models/train.py            # Model training
-├── src/features/feature_engineering.py
-├── scripts/variant_eval.py        # Variant I-V testing
-├── notebooks/                     # SHAP debug scripts
-├── data/                          # All variants + train/test
-├── models/                        # model.pkl, shap plots, expected_features.pkl
-├── variant_reports/               # SHAP plots from variant eval
-├── Dockerfile                     # For containerizing FastAPI
-├── requirements.txt
-└── README.md
+- `is_low_income`, `is_mismatched_email`, `is_young`, `is_missing_address`, `is_fraud_zip`
+- `is_risky_user`: composite binary risk flag
+- Feature scaling, encoding, and selection handled in `src/features/feature_engineering.py`
+
+---
+
+## 🎯 Model
+
+- **XGBoost** classifier with class imbalance handling (`scale_pos_weight = 89.67`)
+- Threshold of **0.3** used for **aggressive recall** in high-risk use case
+- Integrated **rule-based override**:
+  - If fraud probability < 0.3 but `is_risky_user` = 1 → override to fraud (prediction = 1)
+- SHAP used to generate:
+  - Local explanations (waterfall plots)
+  - Global summaries (feature importances)
+
+---
+
+## 🔁 Concept Drift Detection (Real-Time)
+
+Implemented using **River's ADWIN algorithm** via a custom `DriftDetector` class:
+
+```python
+from river.drift import ADWIN
+
+class DriftDetector:
+    def __init__(self, monitored_features):
+        self.detectors = {feature: ADWIN() for feature in monitored_features}
+        self.drift_status = {feature: False for feature in monitored_features}
+
+    def update(self, sample: dict):
+        drift_flags = {}
+        for feature, value in sample.items():
+            if feature in self.detectors:
+                in_drift = self.detectors[feature].update(value)
+                drift_flags[feature] = in_drift
+                self.drift_status[feature] = in_drift
+        return drift_flags
+```
+
+**Monitored features:**
+- `customer_age`
+- `zip_count_4w`
+- `income`
+
+**Drift Response:**
+- Drift flags are **logged per prediction**
+- Future roadmap: Slack alerts, auto-retraining, Grafana dashboards
+
+---
+
+## 🗄️ PostgreSQL Logging Schema
+
+All predictions are logged to PostgreSQL for traceability and analysis:
+
+```sql
+CREATE TABLE IF NOT EXISTS prediction_logs (
+    id SERIAL PRIMARY KEY,
+    customer_age FLOAT,
+    zip_count_4w FLOAT,
+    income FLOAT,
+    prediction INTEGER,
+    fraud_probability FLOAT,
+    is_risky_override BOOLEAN,
+    drift_customer_age BOOLEAN,
+    drift_zip_count_4w BOOLEAN,
+    drift_income BOOLEAN,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+**Example Ingestion Code:**
+
+```python
+def log_prediction_to_db(features, prediction, prob, drift_flags, override):
+    insert_query = """
+        INSERT INTO prediction_logs (
+            customer_age, zip_count_4w, income,
+            prediction, fraud_probability,
+            is_risky_override, drift_customer_age,
+            drift_zip_count_4w, drift_income
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """
+    # Execute insert with psycopg2 connection
 ```
 
 ---
 
-## 📊 Dataset: Bank Account Fraud (NeurIPS 2022)
+## 📈 Model Performance
 
-> [Kaggle Dataset](https://www.kaggle.com/datasets/sgpjesus/bank-account-fraud-dataset-neurips-2022)
+**Classification Report:**
 
-* 1M samples per file (Base + 5 Variants)
-* Highly imbalanced
-* Contains protected attributes
-* Designed to test fairness + robustness
-
-## W&B dashboard
-> https://wandb.ai/nainikas-california-state-university-northridge/fraud-detection?nw=nwusernainikas
-scale_pos_weight = 89.67
-
-Classification Report:
-               precision    recall  f1-score   support
+```
+              precision    recall  f1-score   support
 
            0       1.00      0.76      0.86    197794
            1       0.04      0.86      0.07      2206
@@ -80,80 +142,101 @@ Classification Report:
     accuracy                           0.76    200000
    macro avg       0.52      0.81      0.47    200000
 weighted avg       0.99      0.76      0.85    200000
+```
 
-Confusion Matrix:
- [[150186  47608]
+**Confusion Matrix:**
+
+```
+[[150186  47608]
  [   301   1905]]
-ROC AUC Score: 0.8937
+```
 
-## Huggingface Demo
-> https://huggingface.co/spaces/Nainikas/Fraud-Prevention
+**ROC AUC Score:** `0.8937`
+
 ---
 
-## ✅ Key Features
+## 🧪 Variant Generalization Testing
 
-### 🧠 Feature Engineering
+- Base + Variant I–V from BAF NeurIPS 2022 dataset  
+- Evaluate fairness and robustness under feature drifts  
+- Run via `scripts/variant_eval.py`  
+- Logs all metrics to W&B and saves SHAP plots per variant  
 
-* `is_low_income`, `is_mismatched_email`, `is_young`, `is_missing_address`, `is_fraud_zip`
-* `is_risky_user`: composite binary risk flag
+---
 
-### 🎯 Model
+## 🧭 Architecture Diagram
 
-* XGBoost (with `scale_pos_weight`)
-* Threshold at 0.3 for aggressive recall
-* SHAP-based model insights
+```
+[ User Input ]
+      |
+      v
+[ Feature Engineering ]
+      |
+      v
+[ Drift Detection (ADWIN) ]
+      |
+      v
+[ ML Model (XGBoost) ]
+      |
+      v
+[ Rule Override Logic ]
+      |
+      v
+[ Final Fraud Decision ]
+      |
+      +--> [ SHAP Explainability ]
+      |
+      +--> [ PostgreSQL Logging ]
+      |
+      +--> [ Hugging Face Gradio UI ]
+```
 
-### 🔁 Drift Detection
+---
 
-* ADWIN monitoring of `customer_age`, `zip_count_4w`, `income`
+## 📂 Folder Structure
 
-### 🛡️ Risk Rule Overrides
-
-* If fraud prob < 0.3 **but** `is_risky_user == 1` → override → `prediction = 1`
-
-### 📈 Variant Testing
-
-* Base, Variant I–V evaluated via `scripts/variant_eval.py`
-* Metrics logged to W\&B
-* SHAP summary plots generated per variant
-
-SHAP summary plot for Variant V
-![image](https://github.com/user-attachments/assets/b2f455dd-d434-482c-9ed9-a99beb7493a9)
+```
+.
+├── app.py / src/api/app.py         # FastAPI app
+├── src/models/train.py            # Model training
+├── src/features/feature_engineering.py
+├── src/drift/drift_detector.py    # Real-time ADWIN drift tracking
+├── scripts/variant_eval.py        # Variant I–V testing
+├── notebooks/                     # SHAP debug scripts
+├── data/                          # All variants + train/test
+├── models/                        # model.pkl, shap plots
+├── variant_reports/               # SHAP plots per variant
+├── Dockerfile                     # For containerizing FastAPI
+├── requirements.txt
+└── README.md
+```
 
 ---
 
 ## 🧪 How to Run Locally
 
-### ✅ 1. Install requirements
+1. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-```bash
-pip install -r requirements.txt
-```
+2. **Preprocess and engineer features**
+   ```bash
+   python src/features/feature_engineering.py
+   ```
 
-### ✅ 2. Preprocess & feature engineer
+3. **Train the model**
+   ```bash
+   python src/models/train.py
+   ```
 
-```bash
-python src/features/feature_engineering.py
-```
+4. **Run the API locally**
+   ```bash
+   uvicorn src.api.app:app --reload
+   ```
+   → Visit: `http://localhost:8000/docs`
 
-### ✅ 3. Train the model
-
-```bash
-python src/models/train.py
-```
-
-### ✅ 4. Run the API
-
-```bash
-uvicorn src.api.app:app --reload
-```
-
-→ Visit: [http://localhost:8000/docs](http://localhost:8000/docs)
-
-### ✅ 5. Test prediction
-
-![Screenshot 2025-07-01 165811](https://github.com/user-attachments/assets/67145f34-daf0-4fd1-8360-e4ddded5e82b)
-
+5. **Make a sample prediction:**
 
 ```json
 {
@@ -173,45 +256,21 @@ uvicorn src.api.app:app --reload
 
 ---
 
-## 🧪 Variant Evaluation (Fairness / Robustness)
+## 🐳 Docker Deployment
 
-```bash
-python scripts/variant_eval.py
-```
+1. **Build the image**
+   ```bash
+   docker build -t fraud-api .
+   ```
 
-* Logs ROC AUC, precision, recall to W\&B
-* Saves SHAP plots to `variant_reports/`
-
----
-
-## 🐳 Dockerize API
-
-### ✅ 1. Build
-
-```bash
-docker build -t fraud-api .
-```
-
-### ✅ 2. Run
-
-```bash
-docker run -p 8000:8000 fraud-api
-```
-
-→ [http://localhost:8000/docs](http://localhost:8000/docs)
+2. **Run the container**
+   ```bash
+   docker run -p 8000:8000 fraud-api
+   ```
+   → Access Swagger UI: `http://localhost:8000/docs`
 
 ---
-
-## 📸 Screenshots
-
-* `Swagger UI`
-* `SHAP waterfall (fraud)`
-* `SHAP summary (variant)`
-* `W&B dashboard`
-
----
-
 
 ## 📄 License
 
-CC BY-NC-SA 4.0
+[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)
